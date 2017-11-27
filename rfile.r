@@ -41,3 +41,41 @@ master_frame <- merge(rounds2, companies, by.x = "company_permalink", by.y = "pe
 sprintf("Number of observations in master_frame: %d", nrow(master_frame))
 
 # End of checkpoint 1
+
+# Start of checkpoint 2
+
+avg_funding_per_type <- summarize(group_by(master_frame, funding_round_type),
+                                  raised_amount_usd.avg = mean(raised_amount_usd, na.rm=TRUE))
+
+# Average funding amount of venture type
+sprintf("Average funding amount of venture type: $%f", 
+        avg_funding_per_type[avg_funding_per_type$funding_round_type == 'venture', "raised_amount_usd.avg"])
+
+# Average funding amount of angel type
+sprintf("Average funding amount of angel type: $%f", 
+        avg_funding_per_type[avg_funding_per_type$funding_round_type == 'angel', "raised_amount_usd.avg"])
+
+# Average funding amount of seed type
+sprintf("Average funding amount of seed type: $%f", 
+        avg_funding_per_type[avg_funding_per_type$funding_round_type == 'seed', "raised_amount_usd.avg"])
+
+# Average funding amount of private equity type
+sprintf("Average funding amount of private equity type: $%f", 
+        avg_funding_per_type[avg_funding_per_type$funding_round_type == 'private_equity', "raised_amount_usd.avg"])
+
+
+# Considering that Spark Funds wants to invest between 5 to 15 million USD per investment round, 
+# which investment type is the most suitable for them?
+
+filtered_avg_funding_per_type <- filter(
+  avg_funding_per_type, funding_round_type == 'venture'| 
+  funding_round_type == 'angel' |
+  funding_round_type == 'seed' |
+  funding_round_type == 'private_equity')
+
+most_suitable_index <- which(filtered_avg_funding_per_type$raised_amount_usd.avg >= 5000000 &
+                               filtered_avg_funding_per_type$raised_amount_usd.avg <= 15000000)
+
+sprintf("Most suitable investment type: %s", filtered_avg_funding_per_type[most_suitable_index, "funding_round_type"])
+
+# End of checkpoint 2
