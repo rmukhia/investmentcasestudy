@@ -1,11 +1,12 @@
 library(dplyr)
 library(stringr)
+library(tidyr)
 
-# Load companies data
-companies <- read.delim('input/companies.txt', header = TRUE, sep = '\t', stringsAsFactors = FALSE)
+# Load companies data, using NA for blank strings
+companies <- read.delim('input/companies.txt', header = TRUE, sep = '\t', stringsAsFactors = FALSE, na.strings=c("","NA"))
 
-# Load rounds2 data
-rounds2 <- read.csv('input/rounds2.csv', stringsAsFactors = FALSE)
+# Load rounds2 data, using NA for blank strings
+rounds2 <- read.csv('input/rounds2.csv', stringsAsFactors = FALSE, na.strings=c("","NA"))
 
 # Start of checkpoint 1
 
@@ -79,3 +80,47 @@ most_suitable_index <- which(filtered_avg_funding_per_type$raised_amount_usd.avg
 sprintf("Most suitable investment type: %s", filtered_avg_funding_per_type[most_suitable_index, "funding_round_type"])
 
 # End of checkpoint 2
+
+# Start of checkpoint 3
+
+# Filter master_frame and get only venture investments
+venture_type <- filter(master_frame, funding_round_type == 'venture')
+
+# Group by country code
+top9 <- group_by(venture_type, country_code)
+# Summarise and find the total funding per country
+top9 <- summarise(top9, raised_amount_usd.total = sum(raised_amount_usd, na.rm = TRUE))
+# Sort by descending order
+top9 <- arrange(top9, desc(raised_amount_usd.total))
+
+# Remove NA from top9
+
+top9 <- na.omit(top9)
+top9 <- top9[1:9,]
+
+# The top three english speaking countries are
+# United States
+# Great Britian
+# India
+
+# End of checkpoint 3
+
+# Start of checkpoint 4
+sector_frame <- separate(master_frame, category_list, 'primary_sector', sep = '[|]', remove= FALSE, extra = 'drop')
+
+sector_mapping <- read.csv("input/mapping.csv", stringsAsFactors = FALSE, na.strings=c("","NA"))
+
+sector_mapping <- gather(sector_mapping, main_sector, val, 2:10)
+sector_mapping <- sector_mapping[!(sector_mapping$val == 0),][1:2]
+
+sector_mapping <- na.omit(sector_mapping)
+
+# What to do with primary_sectors which are not present in mapping.csv
+sector_frame <- merge(sector_frame, sector_mapping, by.x = "primary_sector", by.y ="category_list", all.x = TRUE )
+
+# End of checkpoint 4
+# Start of checkpoint 5
+
+D1 <- filter(sector_frame, country_code == "USA", funding_round_type == 'venture')
+D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == 'venture')
+D3 <- filter(sector_frame, country_code == "IND", funding_round_type == 'venture')
