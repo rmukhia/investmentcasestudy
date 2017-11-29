@@ -82,7 +82,9 @@ filtered_avg_funding_per_type <- filter(
 most_suitable_index <- which(filtered_avg_funding_per_type$raised_amount_usd.avg >= 5000000 &
                                filtered_avg_funding_per_type$raised_amount_usd.avg <= 15000000)
 
-sprintf("Most suitable investment type: %s", filtered_avg_funding_per_type[most_suitable_index, "funding_round_type"])
+most_suitable_funding <- filtered_avg_funding_per_type[[most_suitable_index, "funding_round_type"]];
+
+sprintf("Most suitable investment type: %s", most_suitable_funding)
 
 # Clean Global Environment
 rm(avg_funding_per_type)
@@ -94,7 +96,7 @@ rm(most_suitable_index)
 # Start of checkpoint 3
 
 # Filter master_frame and get only venture investments
-venture_type <- filter(master_frame, funding_round_type == 'venture')
+venture_type <- filter(master_frame, funding_round_type == most_suitable_funding)
 
 # Group by country code
 top9 <- group_by(venture_type, country_code)
@@ -145,9 +147,9 @@ rm(sector_mapping)
 # Start of checkpoint 5
 
 # Create three new data frames by filtering with country_code and funding_round_type
-D1 <- filter(sector_frame, country_code == "USA", funding_round_type == 'venture')
-D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == 'venture')
-D3 <- filter(sector_frame, country_code == "IND", funding_round_type == 'venture')
+D1 <- filter(sector_frame, country_code == "USA", funding_round_type == most_suitable_funding)
+D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == most_suitable_funding)
+D3 <- filter(sector_frame, country_code == "IND", funding_round_type == most_suitable_funding)
 
 # Get the total count and total amount of investment in each sector
 getTotalInvestmentsSorted <- function(data) {
