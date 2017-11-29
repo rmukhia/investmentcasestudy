@@ -41,6 +41,11 @@ master_frame <- merge(rounds2, companies, by.x = "company_permalink", by.y = "pe
 
 sprintf("Number of observations in master_frame: %d", nrow(master_frame))
 
+# Clean global environment
+rm(distinct_companies)
+rm(distinct_rounds2)
+rm(no_difference)
+
 # End of checkpoint 1
 
 # Start of checkpoint 2
@@ -79,6 +84,11 @@ most_suitable_index <- which(filtered_avg_funding_per_type$raised_amount_usd.avg
 
 sprintf("Most suitable investment type: %s", filtered_avg_funding_per_type[most_suitable_index, "funding_round_type"])
 
+# Clean Global Environment
+rm(avg_funding_per_type)
+rm(filtered_avg_funding_per_type)
+rm(most_suitable_index)
+
 # End of checkpoint 2
 
 # Start of checkpoint 3
@@ -103,24 +113,118 @@ top9 <- top9[1:9,]
 # Great Britian
 # India
 
+# Clean Global Environment
+rm(venture_type)
+
 # End of checkpoint 3
 
 # Start of checkpoint 4
+
+# Break category_list column into primary_sector by using '|' seperator
 sector_frame <- separate(master_frame, category_list, 'primary_sector', sep = '[|]', remove= FALSE, extra = 'drop')
 
+# Load mapping.csv, using NA for blank strings
 sector_mapping <- read.csv("input/mapping.csv", stringsAsFactors = FALSE, na.strings=c("","NA"))
 
+# Convert from wide to long format
 sector_mapping <- gather(sector_mapping, main_sector, val, 2:10)
+
+# Remove artifacts from the previous conversion
 sector_mapping <- sector_mapping[!(sector_mapping$val == 0),][1:2]
 
+# Remove NA rows
 sector_mapping <- na.omit(sector_mapping)
 
-# What to do with primary_sectors which are not present in mapping.csv
+# Merge sector frame and sector mapping using primary_sector and category_list respectively
 sector_frame <- merge(sector_frame, sector_mapping, by.x = "primary_sector", by.y ="category_list", all.x = TRUE )
+
+# Clean Gobal Environment
+rm(sector_mapping)
 
 # End of checkpoint 4
 # Start of checkpoint 5
 
+# Create three new data frames by filtering with country_code and funding_round_type
 D1 <- filter(sector_frame, country_code == "USA", funding_round_type == 'venture')
 D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == 'venture')
 D3 <- filter(sector_frame, country_code == "IND", funding_round_type == 'venture')
+
+# Get the total count and total amount of investment in each sector
+getTotalInvestmentsSorted <- function(data) {
+  total <- summarise(group_by(data, main_sector), total.count = n(), total.amount = sum(raised_amount_usd, na.rm = TRUE))
+  total <- arrange(total, desc(total.count))
+  return(total);
+}
+
+D1_summary <- getTotalInvestmentsSorted(D1)
+D2_summary <- getTotalInvestmentsSorted(D2)
+D3_summary <- getTotalInvestmentsSorted(D3)
+
+# Merge total investment count and total investment amount per sector
+D1 <- merge(D1, D1_summary, by = "main_sector")
+D2 <- merge(D2, D2_summary, by = "main_sector")
+D3 <- merge(D3, D3_summary, by = "main_sector")
+
+# Top sector (based on count of investments)
+sprintf("Total number of investments (count): (US) %d (GBR) %d (IN) %d",
+        sum(D1_summary$total.count), sum(D2_summary$total.count), sum(D3_summary$total.count))
+
+# Total amount of investment (USD)
+sprintf("Total number of investments (count): (US) $%f (GBR) $%f (IN) $%f",
+        sum(D1_summary$total.amount), sum(D2_summary$total.amount), sum(D3_summary$total.amount))
+
+top_sectors <- c(D1_summary$main_sector[1], D2_summary$main_sector[1], D3_summary$main_sector[1])
+# Top sector (based on count of investments)
+sprintf("Top sector (based on count of investments): (US) %s (GBR) %s (IN) %s",
+        top_sectors[1], top_sectors[2], top_sectors[3])
+
+second_best_sector <- c(D1_summary$main_sector[2], D2_summary$main_sector[2], D3_summary$main_sector[2])
+# Second-best sector (based on count of investments)
+sprintf("Second-best sector (based on count of investments): (US) %s (GBR) %s (IN) %s",
+        second_best_sector[1], second_best_sector[2], second_best_sector[3])
+
+# Third-best sector (based on count of investments)
+sprintf("Third-best sector (based on count of investments): (US) %s (GBR) %s (IN) %s",
+        D1_summary$main_sector[3], D2_summary$main_sector[3], D3_summary$main_sector[3])
+
+# Number of investments in the top sector (refer to point 3)
+sprintf("Number of investments in the top sector (refer to point 3): (US) %d (GBR) %d (IN) %d",
+        D1_summary$total.count[1], D2_summary$total.count[1], D3_summary$total.count[1])
+
+# Number of investments in the second-best sector (refer to point 4)
+sprintf("Number of investments in the second-best sector (refer to point 4): (US) %d (GBR) %d (IN) %d",
+        D1_summary$total.count[2], D2_summary$total.count[2], D3_summary$total.count[2])
+
+# Number of investments in the third-best sector (refer to point 5)
+sprintf("Number of investments in the third-best sector (refer to point 5): (US) %d (GBR) %d (IN) %d",
+        D1_summary$total.count[3], D2_summary$total.count[3], D3_summary$total.count[3])
+
+# Get the name of the company with the highest investment amount in sector
+getTopCompany <- function(data, sector) {
+  # Filter data for sector
+  sector_data <- filter(data, main_sector == sector)
+  # Sum of investment per company
+  data_summary <- summarise(group_by(sector_data, company_permalink), raised_amount_usd.total = sum(raised_amount_usd))
+  # The permalink of the company which received the highest investment
+  top_company_permalink <- data_summary[[which.max(data_summary$raised_amount_usd.total), 1]]
+  # Find the company name given the permalink 
+  top_company_name <- unique(data[data$company_permalink == top_company_permalink, 'name'])
+  return (top_company_name)
+}
+                                              
+# For the top sector count-wise (point 3), which company received the highest investment?
+sprintf("For the top sector count-wise (point 3), which company received the highest investment? (US) %s (GBR) %s (IN) %s",
+        getTopCompany(D1, top_sectors[1]), getTopCompany(D2, top_sectors[2]), getTopCompany(D3, top_sectors[3]))
+
+# For the second-best sector count-wise (point 4), which company received the highest investment?
+sprintf("For the second-best sector count-wise (point 4), which company received the highest investment? (US) %s (GBR) %s (IN) %s",
+       getTopCompany(D1, second_best_sector[1]), getTopCompany(D2, second_best_sector[2]), getTopCompany(D3, second_best_sector[3]))
+
+# Clean Global Environment
+rm(D1_summary)
+rm(D2_summary)
+rm(D3_summary)
+rm(top_sectors)
+rm(second_best_sector)
+
+# End of checkpoint 5
