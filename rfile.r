@@ -146,10 +146,14 @@ rm(sector_mapping)
 # End of checkpoint 4
 # Start of checkpoint 5
 
+is_investable <- function (raised_amount_usd) {
+  return(raised_amount_usd >= 5000000 & raised_amount_usd < 15000000)
+}
+
 # Create three new data frames by filtering with country_code and funding_round_type
-D1 <- filter(sector_frame, country_code == "USA", funding_round_type == most_suitable_funding)
-D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == most_suitable_funding)
-D3 <- filter(sector_frame, country_code == "IND", funding_round_type == most_suitable_funding)
+D1 <- filter(sector_frame, country_code == "USA", funding_round_type == most_suitable_funding, is_investable(raised_amount_usd))
+D2 <- filter(sector_frame, country_code == "GBR", funding_round_type == most_suitable_funding, is_investable(raised_amount_usd))
+D3 <- filter(sector_frame, country_code == "IND", funding_round_type == most_suitable_funding, is_investable(raised_amount_usd))
 
 # Get the total count and total amount of investment in each sector
 getTotalInvestmentsSorted <- function(data) {
