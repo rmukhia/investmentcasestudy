@@ -150,7 +150,7 @@ rm(sector_mapping)
 is_investable <- function (country_code, expected_country_code, funding_round_type, raised_amount_usd) {
   condition1 <- country_code == expected_country_code;
   condition2 <- funding_round_type == most_suitable_funding;
-  condition3 <- raised_amount_usd >= 5000000 & raised_amount_usd < 15000000
+  condition3 <- raised_amount_usd >= 5000000 & raised_amount_usd <= 15000000
   return (condition1 & condition2 & condition3)
 }
 
